@@ -14,6 +14,14 @@ import de.dk.util.function.UnsafeConsumer;
 public class CLOM {
 
    public static <T> T parse(Class<T> targetType,
+                             String... args) throws ArgumentParseException,
+                                                    InvalidTargetTypeException,
+                                                    IllegalArgumentException {
+
+      return parse(targetType, new ArgumentParserBuilder(), args);
+   }
+
+   public static <T> T parse(Class<T> targetType,
                              ArgumentParserBuilder builder,
                              String... args) throws ArgumentParseException,
                                                     InvalidTargetTypeException,
