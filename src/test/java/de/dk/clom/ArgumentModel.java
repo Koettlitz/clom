@@ -5,10 +5,22 @@ public class ArgumentModel {
    private String arg0;
 
    @CLArgument(index=1, mandatory=false)
-   private int arg1 = -1;
+   private byte arg1 = -1;
 
    @CLArgument(index=2, mandatory=false)
-   private float arg2 = -1;
+   private short arg2 = -1;
+
+   @CLArgument(index=3, mandatory=false)
+   private int arg3 = -1;
+
+   @CLArgument(index=4, mandatory=false)
+   private long arg4 = -1;
+
+   @CLArgument(index=5, mandatory=false)
+   private float arg5 = -1;
+
+   @CLArgument(index=6, mandatory=false)
+   private double arg6 = -1;
 
    @CLOption(key='f', longKey="flag")
    private boolean flag;
@@ -20,41 +32,36 @@ public class ArgumentModel {
       return arg0;
    }
 
-   public void setArg0(String arg0) {
-      this.arg0 = arg0;
-   }
-
    public int getArg1() {
       return arg1;
-   }
-
-   public void setArg1(int arg1) {
-      this.arg1 = arg1;
    }
 
    public float getArg2() {
       return arg2;
    }
 
-   public void setArg2(float arg2) {
-      this.arg2 = arg2;
+   public int getArg3() {
+      return arg3;
+   }
+
+   public long getArg4() {
+      return arg4;
+   }
+
+   public float getArg5() {
+      return arg5;
+   }
+
+   public double getArg6() {
+      return arg6;
    }
 
    public boolean isFlag() {
       return flag;
    }
 
-   public void setFlag(boolean flag) {
-      this.flag = flag;
-   }
-
    public long getBar() {
-      return this.bar;
+      return bar;
    }
-
-   public void setBar(long bar) {
-      this.bar = bar;
-   }
-
 
 }

@@ -5,6 +5,7 @@ import static de.dk.clom.InvalidArgTypeException.msgArgAndOpt;
 import java.lang.reflect.Field;
 import java.util.Optional;
 
+import de.dk.clom.TypeAdapter.Default;
 import de.dk.opt.ArgumentParser;
 import de.dk.opt.ArgumentParserBuilder;
 import de.dk.opt.ex.ArgumentParseException;
@@ -56,7 +57,8 @@ public class CLOM {
       try {
          object = targetType.newInstance();
       } catch (InstantiationException | IllegalAccessException e) {
-         throw new InvalidTargetTypeException("Could not instantiate target object of type " + targetType, e);
+         String msg = "Could not instantiate target object of type " + targetType;
+         throw new InvalidTargetTypeException(msg, e);
       }
       for (Field field : fields) {
          context.currentField = field;
@@ -113,28 +115,48 @@ public class CLOM {
              .build();
    }
 
-   private static void setArgValue(Context<?> context, Object target, CLArgument arg) throws InvalidArgTypeException {
+   private static void setArgValue(Context<?> context,
+                                   Object target,
+                                   CLArgument arg) throws InvalidTargetTypeException {
       String value = context.argModel
                             .getArgumentValue(get(arg.name(), context.currentField.getName()));
       if (value == null)
          return;
 
-      try {
-         ReflectionUtils.setPrimitiveValue(target, context.currentField, value);
-      } catch (IllegalStateException e) {
-         throw new InvalidArgTypeException(e.getMessage(), e);
+      if (arg.adapter() != Default.class) {
+         parseValue(context, arg.adapter(), target, value);
+      } else {
+         if (context.currentField.getType().equals(Boolean.TYPE)) {
+            System.out.println("It is strange that this application wants you "
+                               + "to provide a boolean value as a text argument"
+                               + " instead of just an option, but hey! "
+                               + "Like my father used to say: \""
+                               + "Die Freiheit des Programmierers ist grenzenlos!\"");
+         }
+
+         try {
+            ReflectionUtils.setPrimitiveValue(target, context.currentField, value);
+         } catch (IllegalStateException e) {
+            throw new InvalidArgTypeException(e.getMessage(), e);
+         }
       }
    }
 
-   private static void setOptValue(Context<?> context, Object target, CLOption opt) throws InvalidArgTypeException {
+   private static void setOptValue(Context<?> context,
+                                   Object target,
+                                   CLOption opt) throws InvalidTargetTypeException {
       if (opt.expectsValue()) {
          Optional<String> value = context.argModel
                                          .getOptionalValue(opt.key());
          if (value.isPresent()) {
-            try {
-               ReflectionUtils.setPrimitiveValue(target, context.currentField, value.get());
-            } catch (IllegalStateException e) {
-               throw new InvalidArgTypeException(e.getMessage(), e);
+            if (opt.adapter() != Default.class) {
+               parseValue(context, opt.adapter(), target, value.get());
+            } else {
+               try {
+                  ReflectionUtils.setPrimitiveValue(target, context.currentField, value.get());
+               } catch (IllegalStateException e) {
+                  throw new InvalidArgTypeException(e.getMessage(), e);
+               }
             }
          }
       } else {
@@ -147,12 +169,42 @@ public class CLOM {
             throw new InvalidArgTypeException(msg);
          }
 
-         context.currentField.setAccessible(true);
-         try {
-            context.currentField.set(target, context.argModel.isOptionPresent(opt.key()));
-         } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new InvalidArgTypeException("Could not set flag " + context.currentField.getName(), e);
-         }
+         setFieldValue(context.currentField, target, context.argModel.isOptionPresent(opt.key()));
+      }
+   }
+
+   private static void parseValue(Context<?> context,
+                                  Class<? extends TypeAdapter<?>> adapterType,
+                                  Object target,
+                                  String value) throws InvalidTargetTypeException {
+
+      TypeAdapter<?> adapter;
+      try {
+         adapter = adapterType.newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+         String msg = "Could not instantiate value adapter of type "
+                      + adapterType.getName() + " for field "
+                      + context.currentField;
+
+         throw new InvalidTargetTypeException(msg, e);
+      }
+
+      Object parsedValue;
+      parsedValue = adapter.parse(value);
+      setFieldValue(context.currentField, target, parsedValue);
+   }
+
+   private static void setFieldValue(Field field,
+                                     Object target,
+                                     Object value) throws InvalidArgTypeException {
+      try {
+         field.setAccessible(true);
+         field.set(target, value);
+      } catch (IllegalArgumentException |
+               IllegalAccessException |
+               SecurityException e) {
+
+         throw new InvalidArgTypeException("Could not set value " + value + " to field " + field.getName(), e);
       }
    }
 }
