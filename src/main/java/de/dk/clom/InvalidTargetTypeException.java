@@ -1,6 +1,6 @@
 package de.dk.clom;
 
-public class InvalidTargetTypeException extends Exception {
+public class InvalidTargetTypeException extends RuntimeException {
    private static final long serialVersionUID = 7479136619335273589L;
 
    public InvalidTargetTypeException() {

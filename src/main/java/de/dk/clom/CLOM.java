@@ -13,6 +13,15 @@ import de.dk.util.ReflectionUtils;
 import de.dk.util.function.UnsafeConsumer;
 
 public class CLOM {
+   private static boolean printUsageOnHelp = true;
+
+   public static boolean isPrintUsageOnHelp() {
+      return printUsageOnHelp;
+   }
+
+   public static void setPrintUsageOnHelp(boolean printUsageOnHelp) {
+      CLOM.printUsageOnHelp = printUsageOnHelp;
+   }
 
    public static <T> T parse(Class<T> targetType,
                              String... args) throws ArgumentParseException,
@@ -46,7 +55,7 @@ public class CLOM {
       addArgs(context);
 
       ArgumentParser parser = builder.buildAndGet();
-      if (parser.isHelp(args)) {
+      if (printUsageOnHelp && parser.isHelp(args)) {
          parser.printUsage(System.out);
          return null;
       }
