@@ -12,25 +12,121 @@ import de.dk.opt.ex.ArgumentParseException;
 import de.dk.util.ReflectionUtils;
 import de.dk.util.function.UnsafeConsumer;
 
+/**
+ * This class parses a custom object from provided command line arguments.
+ * By providing the type of the target object and the command line arguments
+ * the command line object mapper creates the object and maps the values
+ * from the command line to the corresponding fields of the object.
+ * This can either be done by directly calling the {@link #parse(Class, String...)}
+ * method directly or by creating a new <code>CLOM</code> instance and
+ * calling the {@link #parse(String...)} method on it.<br>
+ * If you parse the arguments over an instance of <code>CLOM</code>
+ * you can modify the {@link ArgumentParser}, that the <code>CLOM</code>
+ * instance uses by calling the {@link #getParser()} method before actually
+ * parsing the arguments. Additionally it allows you to print a generated
+ * help message by using the parsers {@link ArgumentParser#printUsage(java.io.PrintStream)}
+ * method. Some code example right here:<br>
+ * <pre>
+ * CLOM&lt;MyArgModel&gt; clom = new CLOM<>(MyArgModel.class);
+ * ArgumentParser parser = clom.getParser();
+ * if (parser.isHelp(args)) {
+ *    parser.printUsage(System.out);
+ *    return;
+ * }
+ *
+ * result = clom.parse(args);
+ * </pre>
+ *
+ * This behaviour (printing a generated help message if
+ * arguments like <code>--help</code> are given) is enabled by default when
+ * calling the static {@link #parse(Class, String...)} method directly.
+ * In that case <code>null</code> is returned by that method. This behaviour
+ * can be disabled by {@link #setPrintUsageOnHelp(boolean)}.
+ *
+ * @param <T> The type of the custom target object
+ *
+ * @see CLArgument
+ * @see CLOption
+ *
+ * @author David Koettlitz
+ * <br>Erstellt am 09.11.2018
+ */
 public class CLOM<T> {
    private static boolean printUsageOnHelp = true;
 
    private final ArgumentParser parser;
    private final Context<T> context;
 
+   /**
+    * Flag that controls the behaviour of this class to react to
+    * arguments, that indicate the request for help like
+    * e.g. <code>--help</code>. This does not affect any
+    * <code>CLOM</code> instances.
+    *
+    * @return <code>true</code> if the static <code>parse</code>
+    * methods prints a generated help message when help requesting
+    * arguments are given and returns <code>null</code><br>
+    * <code>false</code> if help requesting args are treated as normal
+    * arguments and are tried to be mapped to any field of the
+    * target object.
+    */
    public static boolean isPrintUsageOnHelp() {
       return printUsageOnHelp;
    }
 
+   /**
+    * Set the flag that controls the behaviour of this class to react to
+    * arguments, that indicate the request for help like
+    * e.g. <code>--help</code>. This does not affect any
+    * <code>CLOM</code> instances.
+    *
+    * @param printUsageOnHelp <code>true</code> if the static <code>parse</code>
+    * methods should print a generated help message when help requesting
+    * arguments are given and then return <code>null</code><br>
+    * <code>false</code> if help requesting args should be treated as normal
+    * arguments and be tried to be mapped to any field of the
+    * target object.
+    */
    public static void setPrintUsageOnHelp(boolean printUsageOnHelp) {
       CLOM.printUsageOnHelp = printUsageOnHelp;
    }
 
-   public CLOM(Class<T> targetType) {
+   /**
+    * Creates a new command line object mapper, which parses instances of
+    * the given target type from the command line.
+    *
+    * @param targetType The type of the target object to be parsed from
+    * the command line
+    *
+    * @throws InvalidTargetTypeException if <code>targetType</code> is invalidly
+    * annotated
+    */
+   public CLOM(Class<T> targetType) throws InvalidTargetTypeException {
       this.context = new Context<>(targetType, new ArgumentParserBuilder());
       this.parser = buildParser(context);
    }
 
+   /**
+    * Parses the given <code>args</code> into an instance of
+    * <code>targetType</code>. If the first argument indicates
+    * a request for help like e.g. <code>--help</code> AND
+    * {@link #setPrintUsageOnHelp(boolean)} is set to <code>true</code>
+    * (which is the default state) a generated help message will be printed
+    * to standardout and <code>null</code> will be returned.
+    *
+    * @param targetType The type of the object to be parsed from the
+    * command line. The fields of <code>targetType</code> should be annotated.
+    * @param args the command line arguments
+    *
+    * @return An instance of <code>targetType</code> that contains the
+    * values provided by the <code>args</code>
+    *
+    * @throws ArgumentParseException if the given <code>args</code> do not
+    * match the format of <code>targetType</code>
+    * @throws InvalidTargetTypeException if the given <code>tagetType</code> is
+    * invalidly annotated
+    * @throws IllegalArgumentException if <code>args</code>
+    */
    public static <T> T parse(Class<T> targetType,
                              String... args) throws ArgumentParseException,
                                                     InvalidTargetTypeException,
@@ -39,6 +135,29 @@ public class CLOM<T> {
       return parse(targetType, new ArgumentParserBuilder(), args);
    }
 
+   /**
+    * Parses the given <code>args</code> into an instance of
+    * <code>targetType</code>. If the first argument indicates
+    * a request for help like e.g. <code>--help</code> AND
+    * {@link #setPrintUsageOnHelp(boolean)} is set to <code>true</code>
+    * (which is the default state) a generated help message will be printed
+    * to standardout and <code>null</code> will be returned.
+    *
+    * @param targetType The type of the object to be parsed from the
+    * command line. The fields of <code>targetType</code> should be annotated.
+    * @param builder the builder to build the {@link ArgumentParser} with,
+    * that is used to parse the arguments
+    * @param args the command line arguments
+    *
+    * @return An instance of <code>targetType</code> that contains the
+    * values provided by the <code>args</code>
+    *
+    * @throws ArgumentParseException if the given <code>args</code> do not
+    * match the format of <code>targetType</code>
+    * @throws InvalidTargetTypeException if the given <code>tagetType</code> is
+    * invalidly annotated
+    * @throws IllegalArgumentException if <code>args</code>
+    */
    public static <T> T parse(Class<T> targetType,
                              ArgumentParserBuilder builder,
                              String... args) throws ArgumentParseException,
@@ -81,7 +200,7 @@ public class CLOM<T> {
       return object;
    }
 
-   private static ArgumentParser buildParser(Context<?> context) {
+   private static ArgumentParser buildParser(Context<?> context) throws InvalidTargetTypeException {
       ArgumentParserBuilder builder = context.builder;
       Field[] fields = context.targetType
                               .getDeclaredFields();
@@ -152,8 +271,9 @@ public class CLOM<T> {
    private static void setArgValue(Context<?> context,
                                    Object target,
                                    CLArgument arg) throws InvalidTargetTypeException {
+      String argName = get(arg.name(), context.currentField.getName());
       String value = context.argModel
-                            .getArgumentValue(get(arg.name(), context.currentField.getName()));
+                            .getArgumentValue(argName);
       if (value == null)
          return;
 
@@ -168,11 +288,7 @@ public class CLOM<T> {
                                + "Die Freiheit des Programmierers ist grenzenlos!\"");
          }
 
-         try {
-            ReflectionUtils.setPrimitiveValue(target, context.currentField, value);
-         } catch (IllegalStateException e) {
-            throw new InvalidArgTypeException(e.getMessage(), e);
-         }
+         setFieldValue(context, argName, target, value);
       }
    }
 
@@ -186,11 +302,8 @@ public class CLOM<T> {
             if (opt.adapter() != Default.class) {
                parseValue(context, opt.adapter(), target, value.get());
             } else {
-               try {
-                  ReflectionUtils.setPrimitiveValue(target, context.currentField, value.get());
-               } catch (IllegalStateException e) {
-                  throw new InvalidArgTypeException(e.getMessage(), e);
-               }
+               String optName = opt.longKey() == null ? "-" + opt.key() : opt.longKey();
+               setFieldValue(context, optName, target, value.get());
             }
          }
       } else {
@@ -228,6 +341,24 @@ public class CLOM<T> {
       setFieldValue(context.currentField, target, parsedValue);
    }
 
+   private static void setFieldValue(Context<?> context, String argName, Object target, String value) {
+      if (!ReflectionUtils.isPrimitive(context.currentField.getType())) {
+         String msg = "Could not set value " +
+                      value +
+                      " of the command line argument/option " +
+                      argName + " of field " + context.currentField.getName() +
+                      ", because the field was not of a primitive type nor String and " +
+                      "no TypeAdapter was provided.";
+         throw new InvalidTargetTypeException(msg);
+      }
+
+      try {
+         ReflectionUtils.setPrimitiveValue(target, context.currentField, value);
+      } catch (IllegalStateException e) {
+         throw new InvalidArgTypeException(e.getMessage(), e);
+      }
+   }
+
    private static void setFieldValue(Field field,
                                      Object target,
                                      Object value) throws InvalidArgTypeException {
@@ -242,11 +373,33 @@ public class CLOM<T> {
       }
    }
 
+   /**
+    * Parses the given <code>args</code> into an instance of the
+    * given <code>targetType</code>.
+    *
+    * @param args The command line arguments
+    *
+    * @return An instance of <code>targetType</code> that contains the
+    * values provided by the <code>args</code>
+    *
+    * @throws ArgumentParseException if the given <code>args</code> do not
+    * match the format of <code>targetType</code>
+    * @throws InvalidTargetTypeException if the given <code>tagetType</code> is
+    * invalidly annotated
+    * @throws IllegalArgumentException if <code>args</code>
+    */
    public T parse(String... args) throws ArgumentParseException,
+                                         InvalidTargetTypeException,
                                          IllegalArgumentException {
       return parse(parser, context, args);
    }
 
+   /**
+    * Get the parser, that is used to parse the command line arguments.
+    * Can be modified before parsing.
+    *
+    * @return the parser to parse the command line args
+    */
    public ArgumentParser getParser() {
       return parser;
    }
