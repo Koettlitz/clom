@@ -12,8 +12,11 @@ import de.dk.opt.ex.ArgumentParseException;
 import de.dk.util.ReflectionUtils;
 import de.dk.util.function.UnsafeConsumer;
 
-public class CLOM {
+public class CLOM<T> {
    private static boolean printUsageOnHelp = true;
+
+   private final ArgumentParser parser;
+   private final Context<T> context;
 
    public static boolean isPrintUsageOnHelp() {
       return printUsageOnHelp;
@@ -21,6 +24,11 @@ public class CLOM {
 
    public static void setPrintUsageOnHelp(boolean printUsageOnHelp) {
       CLOM.printUsageOnHelp = printUsageOnHelp;
+   }
+
+   public CLOM(Class<T> targetType) {
+      this.context = new Context<>(targetType, new ArgumentParserBuilder());
+      this.parser = buildParser(context);
    }
 
    public static <T> T parse(Class<T> targetType,
@@ -38,7 +46,46 @@ public class CLOM {
                                                     IllegalArgumentException {
 
       Context<T> context = new Context<>(targetType, builder);
-      Field[] fields = targetType.getDeclaredFields();
+      ArgumentParser parser = buildParser(context);
+      if (printUsageOnHelp && parser.isHelp(args)) {
+         parser.printUsage(System.out);
+         return null;
+      }
+
+      return parse(parser, context, args);
+   }
+
+   private static <T> T parse(ArgumentParser parser,
+                              Context<T> context,
+                              String... args) throws ArgumentParseException,
+                                                     IllegalArgumentException {
+
+      context.argModel = parser.parseArguments(args);
+
+      T object;
+      try {
+         object = context.targetType
+                         .newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+         String msg = "Could not instantiate target object of type " + context.targetType;
+         throw new InvalidTargetTypeException(msg, e);
+      }
+
+      for (Field field : context.targetType.getDeclaredFields()) {
+         context.currentField = field;
+         processField(context,
+                      arg -> setArgValue(context, object, arg),
+                      opt -> setOptValue(context, object, opt));
+      }
+
+      return object;
+   }
+
+   private static ArgumentParser buildParser(Context<?> context) {
+      ArgumentParserBuilder builder = context.builder;
+      Field[] fields = context.targetType
+                              .getDeclaredFields();
+
       for (Field field : fields) {
          context.currentField = field;
          try {
@@ -54,29 +101,7 @@ public class CLOM {
 
       addArgs(context);
 
-      ArgumentParser parser = builder.buildAndGet();
-      if (printUsageOnHelp && parser.isHelp(args)) {
-         parser.printUsage(System.out);
-         return null;
-      }
-
-      context.argModel = parser.parseArguments(args);
-
-      T object;
-      try {
-         object = targetType.newInstance();
-      } catch (InstantiationException | IllegalAccessException e) {
-         String msg = "Could not instantiate target object of type " + targetType;
-         throw new InvalidTargetTypeException(msg, e);
-      }
-      for (Field field : fields) {
-         context.currentField = field;
-         processField(context,
-                      arg -> setArgValue(context, object, arg),
-                      opt -> setOptValue(context, object, opt));
-      }
-
-      return object;
+      return builder.buildAndGet();
    }
 
    private static void addArgs(Context<?> context) throws InvalidTargetTypeException {
@@ -215,5 +240,14 @@ public class CLOM {
 
          throw new InvalidArgTypeException("Could not set value " + value + " to field " + field.getName(), e);
       }
+   }
+
+   public T parse(String... args) throws ArgumentParseException,
+                                         IllegalArgumentException {
+      return parse(parser, context, args);
+   }
+
+   public ArgumentParser getParser() {
+      return parser;
    }
 }
