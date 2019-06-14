@@ -10,7 +10,7 @@ import de.dk.opt.ArgumentParser;
 import de.dk.opt.ArgumentParserBuilder;
 import de.dk.opt.ex.ArgumentParseException;
 import de.dk.util.ReflectionUtils;
-import de.dk.util.function.UnsafeConsumer;
+import de.dk.util.UnsafeConsumer;
 
 /**
  * This class parses a custom object from provided command line arguments.
