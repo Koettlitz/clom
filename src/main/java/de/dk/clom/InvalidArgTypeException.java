@@ -21,8 +21,22 @@ public class InvalidArgTypeException extends InvalidTargetTypeException {
    }
 
    static String msgArgAndOpt(Context<?> context) {
-      return "A field can only represent either a CLArgument or a CLOption. " +
-             "The field " + context.currentField.getName() + " of class " +
-             context.targetType.getName() + " was annotated both.";
+      return msgCanOnlyBeOneOfEither("a CLArgument", "a CLOption", context);
+   }
+
+   static String msgVarArgsAndArgs(Context<?> context) {
+      return msgCanOnlyBeOneOfEither("a CLArgument", "VarArgs", context);
+   }
+
+   static String msgVarArgsAndOpt(Context<?> context) {
+      return msgCanOnlyBeOneOfEither("a CLOption", "VarArgs", context);
+   }
+
+   private static String msgCanOnlyBeOneOfEither(String annotationA, String annotationB, Context<?> context) {
+      return String.format("A field can only represent either %s or %s. The field %s of class %s was annotated both.",
+                           annotationA,
+                           annotationB,
+                           context.currentField.getName(),
+                           context.targetType.getName());
    }
 }

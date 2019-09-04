@@ -1,8 +1,9 @@
 package de.dk.clom;
 
-import static de.dk.clom.InvalidArgTypeException.msgArgAndOpt;
+import static de.dk.clom.InvalidArgTypeException.*;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Optional;
 
 import de.dk.clom.TypeAdapter.Default;
@@ -194,6 +195,7 @@ public class CLOM<T> {
          context.currentField = field;
          processField(context,
                       arg -> setArgValue(context, object, arg),
+                      varArgs -> setVarArgsValue(context, object, varArgs),
                       opt -> setOptValue(context, object, opt));
       }
 
@@ -210,6 +212,7 @@ public class CLOM<T> {
          try {
             processField(context,
                          arg -> context.argAdders.add(new ArgumentAdder(arg, field)),
+                         varArgs -> setVarArgs(builder, context),
                          opt -> addOption(builder, field, opt));
 
          } catch (IllegalStateException e) {
@@ -221,6 +224,35 @@ public class CLOM<T> {
       addArgs(context);
 
       return builder.buildAndGet();
+   }
+
+   private static void setVarArgs(ArgumentParserBuilder builder, Context<?> context) {
+      if (!Collection.class.isAssignableFrom(context.currentField.getType())) {
+         String msg = String.format("VarArgs field %s of type %s has to be a collection.",
+                                    context.currentField.getName(),
+                                    context.targetType.getName());
+
+         throw new InvalidTargetTypeException(msg);
+      }
+
+      try {
+         builder.setVarArgs(true);
+      } catch (IllegalStateException e) {
+         String msg = String.format("Error with VarArgs annotation in type %s at field %s: \"%s\"",
+                                    context.targetType.getName(),
+                                    context.currentField.getName(),
+                                    e.getMessage());
+
+         throw new InvalidTargetTypeException(msg, e);
+      }
+   }
+
+   private static void addOption(ArgumentParserBuilder builder, Field field, CLOption opt) {
+      builder.buildOption(opt.key())
+              .setLongKey(opt.longKey())
+              .setDescription(opt.description())
+              .setExpectsValue(opt.expectsValue())
+              .build();
    }
 
    private static void addArgs(Context<?> context) throws InvalidTargetTypeException {
@@ -239,18 +271,27 @@ public class CLOM<T> {
 
    private static void processField(Context<?> context,
                                     UnsafeConsumer<CLArgument, InvalidTargetTypeException> argProcessor,
+                                    UnsafeConsumer<CLVarArgs, InvalidTargetTypeException> varArgProcessor,
                                     UnsafeConsumer<CLOption, InvalidTargetTypeException> optProcessor) throws InvalidTargetTypeException {
 
-      CLArgument arg = context.currentField
-                              .getDeclaredAnnotation(CLArgument.class);
-      if (arg != null)
-         argProcessor.accept(arg);
+      CLVarArgs varArgs = context.currentField.getDeclaredAnnotation(CLVarArgs.class);
+      if (varArgs != null)
+         varArgProcessor.accept(varArgs);
 
-      CLOption opt = context.currentField
-                            .getDeclaredAnnotation(CLOption.class);
+      CLArgument arg = context.currentField.getDeclaredAnnotation(CLArgument.class);
+      if (arg != null) {
+         if (varArgs != null)
+            throw new InvalidArgTypeException(msgVarArgsAndArgs(context));
+
+         argProcessor.accept(arg);
+      }
+
+      CLOption opt = context.currentField.getDeclaredAnnotation(CLOption.class);
       if (opt != null) {
          if (arg != null)
             throw new InvalidArgTypeException(msgArgAndOpt(context));
+         if (varArgs != null)
+            throw new InvalidArgTypeException(msgVarArgsAndOpt(context));
 
          optProcessor.accept(opt);
       }
@@ -258,14 +299,6 @@ public class CLOM<T> {
 
    static String get(String string, String ifEmpty) {
       return string.isEmpty() ? ifEmpty : string;
-   }
-
-   private static void addOption(ArgumentParserBuilder builder, Field field, CLOption opt) {
-      builder.buildOption(opt.key())
-             .setLongKey(opt.longKey())
-             .setDescription(opt.description())
-             .setExpectsValue(opt.expectsValue())
-             .build();
    }
 
    private static void setArgValue(Context<?> context,
@@ -278,18 +311,40 @@ public class CLOM<T> {
          return;
 
       if (arg.adapter() != Default.class) {
-         parseValue(context, arg.adapter(), target, value);
+         Object parsedValue = parseValue(context, arg.adapter(), target, value);
+         setFieldValue(context.currentField, target, parsedValue);
       } else {
          if (context.currentField.getType().equals(Boolean.TYPE)) {
             System.out.println("It is strange that this application wants you "
-                               + "to provide a boolean value as a text argument"
-                               + " instead of just an option, but hey! "
+                               + "to provide a boolean value as a text argument "
+                               + "instead of just an option, but hey! "
                                + "Like my father used to say: \""
                                + "Die Freiheit des Programmierers ist grenzenlos!\"");
          }
 
-         setFieldValue(context, argName, target, value);
+         setCurrentFieldsValue(context, argName, target, value);
       }
+   }
+
+   private static void setVarArgsValue(Context<?> context, Object target, CLVarArgs varArgs) {
+      Collection<Object> collection;
+      try {
+         collection = varArgs.collectionType().newInstance();
+      } catch (InstantiationException | IllegalAccessException  e) {
+         String msg = String.format("Could not instantiate varArgs collection of type %s at field %s of type %s.",
+                                    varArgs.collectionType().getName(),
+                                    context.currentField.getName(),
+                                    context.targetType.getName());
+
+         throw new InvalidTargetTypeException(msg);
+      }
+
+      for (String value : context.argModel.getPlainArguments()) {
+         Object parsedValue = parseValue(context, varArgs.adapter(), target, value);
+         collection.add(parsedValue);
+      }
+
+      setFieldValue(context.currentField, target, collection);
    }
 
    private static void setOptValue(Context<?> context,
@@ -300,10 +355,11 @@ public class CLOM<T> {
                                          .getOptionalValue(opt.key());
          if (value.isPresent()) {
             if (opt.adapter() != Default.class) {
-               parseValue(context, opt.adapter(), target, value.get());
+               Object parsedValue = parseValue(context, opt.adapter(), target, value.get());
+               setFieldValue(context.currentField, target, parsedValue);
             } else {
                String optName = opt.longKey() == null ? "-" + opt.key() : opt.longKey();
-               setFieldValue(context, optName, target, value.get());
+               setCurrentFieldsValue(context, optName, target, value.get());
             }
          }
       } else {
@@ -320,10 +376,10 @@ public class CLOM<T> {
       }
    }
 
-   private static void parseValue(Context<?> context,
-                                  Class<? extends TypeAdapter<?>> adapterType,
-                                  Object target,
-                                  String value) throws InvalidTargetTypeException {
+   private static Object parseValue(Context<?> context,
+                                    Class<? extends TypeAdapter<?>> adapterType,
+                                    Object target,
+                                    String value) throws InvalidTargetTypeException {
 
       TypeAdapter<?> adapter;
       try {
@@ -336,12 +392,10 @@ public class CLOM<T> {
          throw new InvalidTargetTypeException(msg, e);
       }
 
-      Object parsedValue;
-      parsedValue = adapter.parse(value);
-      setFieldValue(context.currentField, target, parsedValue);
+      return adapter.parse(value);
    }
 
-   private static void setFieldValue(Context<?> context, String argName, Object target, String value) {
+   private static void setCurrentFieldsValue(Context<?> context, String argName, Object target, String value) {
       if (!ReflectionUtils.isPrimitive(context.currentField.getType())) {
          String msg = "Could not set value " +
                       value +
