@@ -1,4 +1,4 @@
-package de.dk.util;
+package com.github.koettlitz.util;
 
 import java.util.Objects;
 import java.util.function.Function;

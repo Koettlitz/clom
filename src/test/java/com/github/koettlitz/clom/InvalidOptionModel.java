@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 public class InvalidOptionModel {
    @CLOption(key='o', expectsValue=false)

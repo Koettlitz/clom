@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 /**
  * Indicates that the target type to be parsed from command line arguments

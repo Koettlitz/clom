@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -6,8 +6,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import de.dk.clom.TypeAdapter.Default;
-import de.dk.opt.ArgumentParser;
+import com.github.koettlitz.clom.TypeAdapter.Default;
+import com.github.koettlitz.opt.ArgumentParser;
 
 /**
  * Annotation for declaring a field to represent a

@@ -1,17 +1,17 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
-import static de.dk.clom.InvalidArgTypeException.*;
+import static com.github.koettlitz.clom.InvalidArgTypeException.*;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Optional;
 
-import de.dk.clom.TypeAdapter.Default;
-import de.dk.opt.ArgumentParser;
-import de.dk.opt.ArgumentParserBuilder;
-import de.dk.opt.ex.ArgumentParseException;
-import de.dk.util.ReflectionUtils;
-import de.dk.util.UnsafeConsumer;
+import com.github.koettlitz.clom.TypeAdapter.Default;
+import com.github.koettlitz.opt.ArgumentParser;
+import com.github.koettlitz.opt.ArgumentParserBuilder;
+import com.github.koettlitz.opt.ex.ArgumentParseException;
+import com.github.koettlitz.util.ReflectionUtils;
+import com.github.koettlitz.util.UnsafeConsumer;
 
 /**
  * This class parses a custom object from provided command line arguments.
@@ -28,7 +28,7 @@ import de.dk.util.UnsafeConsumer;
  * help message by using the parsers {@link ArgumentParser#printUsage(java.io.PrintStream)}
  * method. Some code example right here:<br>
  * <pre>
- * CLOM&lt;MyArgModel&gt; clom = new CLOM<>(MyArgModel.class);
+ * CLOM&lt;MyArgModel&gt; clom = new CLOM&lt;&gt;(MyArgModel.class);
  * ArgumentParser parser = clom.getParser();
  * if (parser.isHelp(args)) {
  *    parser.printUsage(System.out);
@@ -118,6 +118,7 @@ public class CLOM<T> {
     * @param targetType The type of the object to be parsed from the
     * command line. The fields of <code>targetType</code> should be annotated.
     * @param args the command line arguments
+    * @param <T> the generic type of the object containing the parsed arguments
     *
     * @return An instance of <code>targetType</code> that contains the
     * values provided by the <code>args</code>
@@ -149,6 +150,7 @@ public class CLOM<T> {
     * @param builder the builder to build the {@link ArgumentParser} with,
     * that is used to parse the arguments
     * @param args the command line arguments
+    * @param <T> the generic type of the object containing the parsed arguments
     *
     * @return An instance of <code>targetType</code> that contains the
     * values provided by the <code>args</code>

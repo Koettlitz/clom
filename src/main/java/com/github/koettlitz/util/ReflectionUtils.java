@@ -1,4 +1,4 @@
-package de.dk.util;
+package com.github.koettlitz.util;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;

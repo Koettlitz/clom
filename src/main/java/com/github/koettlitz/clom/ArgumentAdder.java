@@ -1,8 +1,8 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
+
+import com.github.koettlitz.opt.ArgumentParserBuilder;
 
 import java.lang.reflect.Field;
-
-import de.dk.opt.ArgumentParserBuilder;
 
 public class ArgumentAdder implements Comparable<ArgumentAdder> {
    private final CLArgument arg;

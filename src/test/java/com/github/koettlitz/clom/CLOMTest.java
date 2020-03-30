@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,10 +11,10 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-import de.dk.opt.ArgumentParserBuilder;
-import de.dk.opt.ex.ArgumentParseException;
-import de.dk.opt.ex.MissingArgumentException;
-import de.dk.opt.ex.MissingOptionValueException;
+import com.github.koettlitz.opt.ArgumentParserBuilder;
+import com.github.koettlitz.opt.ex.ArgumentParseException;
+import com.github.koettlitz.opt.ex.MissingArgumentException;
+import com.github.koettlitz.opt.ex.MissingOptionValueException;
 
 public class CLOMTest {
    private static final String ARG0 = "foo";

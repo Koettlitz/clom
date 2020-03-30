@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

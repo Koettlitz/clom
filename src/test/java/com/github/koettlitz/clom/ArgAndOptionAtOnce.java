@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 public class ArgAndOptionAtOnce {
    @CLArgument(index=0)

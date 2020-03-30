@@ -1,12 +1,12 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
+
+import com.github.koettlitz.opt.ArgumentModel;
+import com.github.koettlitz.opt.ArgumentParserBuilder;
 
 import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.Field;
 import java.util.TreeSet;
-
-import de.dk.opt.ArgumentModel;
-import de.dk.opt.ArgumentParserBuilder;
 
 public class Context<T> {
    final Class<T> targetType;

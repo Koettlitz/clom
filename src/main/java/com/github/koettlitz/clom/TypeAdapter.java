@@ -1,4 +1,4 @@
-package de.dk.clom;
+package com.github.koettlitz.clom;
 
 /**
  * An adapter that is used to parse a command line token string
