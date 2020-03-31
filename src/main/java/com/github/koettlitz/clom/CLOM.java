@@ -127,7 +127,7 @@ public class CLOM<T> {
     * match the format of <code>targetType</code>
     * @throws InvalidTargetTypeException if the given <code>tagetType</code> is
     * invalidly annotated
-    * @throws IllegalArgumentException if <code>args</code>
+    * @throws IllegalArgumentException  if <code>args</code> is <code>null</code> or empty.
     */
    public static <T> T parse(Class<T> targetType,
                              String... args) throws ArgumentParseException,
@@ -159,7 +159,7 @@ public class CLOM<T> {
     * match the format of <code>targetType</code>
     * @throws InvalidTargetTypeException if the given <code>tagetType</code> is
     * invalidly annotated
-    * @throws IllegalArgumentException if <code>args</code>
+    * @throws IllegalArgumentException  if <code>args</code> is <code>null</code> or empty.
     */
    public static <T> T parse(Class<T> targetType,
                              ArgumentParserBuilder builder,
